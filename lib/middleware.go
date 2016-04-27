@@ -4,8 +4,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"lootbot/models"
-	"lootbot/config"
+	"github.com/per-frojdh/lootbot/models"
+	"github.com/per-frojdh/lootbot/config"
     "log"
 )
 

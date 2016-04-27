@@ -14,13 +14,13 @@ import (
     "github.com/jinzhu/gorm"
     _ "github.com/lib/pq"
     //
-    items "lootbot/api/items"
-    users "lootbot/api/users"
-    lootlists "lootbot/api/lootlists"
-    characters "lootbot/api/characters"
-    misc "lootbot/api/public"
-    config "lootbot/config"
-    lib "lootbot/lib"
+    items "github.com/per-frojdh/lootbot/api/items"
+    users "github.com/per-frojdh/lootbot/api/users"
+    lootlists "github.com/per-frojdh/lootbot/api/lootlists"
+    characters "github.com/per-frojdh/lootbot/api/characters"
+    misc "github.com/per-frojdh/lootbot/api/public"
+    config "github.com/per-frojdh/lootbot/config"
+    lib "github.com/per-frojdh/lootbot/lib"
 )
 
 func main() {

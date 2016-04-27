@@ -5,8 +5,8 @@ import (
     "github.com/jinzhu/gorm"
     "net/http"
     "strconv"
-    models "lootbot/models"
-    util "lootbot/lib"
+    models "github.com/per-frojdh/lootbot/models"
+    util "github.com/per-frojdh/lootbot/lib"
 	"fmt"
 )
 

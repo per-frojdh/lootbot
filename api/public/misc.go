@@ -5,7 +5,7 @@ import (
     "github.com/jinzhu/gorm"
     "net/http"
     //
-    models "lootbot/models"
+    models "github.com/per-frojdh/lootbot/models"
 )
 
 // HealthCheck ...

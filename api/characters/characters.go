@@ -5,9 +5,9 @@ import (
     "github.com/jinzhu/gorm"
     "net/http"
     "fmt"
-    models "lootbot/models"
-    config "lootbot/config"
-    util "lootbot/lib"
+    models "github.com/per-frojdh/lootbot/models"
+    config "github.com/per-frojdh/lootbot/config"
+    util "github.com/per-frojdh/lootbot/lib"
 )
 
 // GetCharacters ...

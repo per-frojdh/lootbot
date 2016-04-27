@@ -10,7 +10,7 @@ import (
     "github.com/jinzhu/gorm"
     bcrypt "golang.org/x/crypto/bcrypt"
     "net/http"
-    models "lootbot/models"
+    models "github.com/per-frojdh/lootbot/models"
 )
 
 // GetUsers ...

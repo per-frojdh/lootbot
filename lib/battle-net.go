@@ -2,7 +2,7 @@ package lib
 
 import (
     "github.com/parnurzeal/gorequest"
-    models "lootbot/models"
+    models "github.com/per-frojdh/lootbot/models"
     "encoding/json"
     "fmt"
     "errors"
