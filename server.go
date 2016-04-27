@@ -55,17 +55,17 @@ func main() {
         {
             itemEndpoint := v1.Group("/items")
             itemEndpoint.GET("/:id", items.GetItem)            
-            itemEndpoint.POST("/", items.SearchItems)                
+            itemEndpoint.GET("/", items.SearchItems)                
             
             userEndpoint := v1.Group("/users")
             userEndpoint.GET("/", users.GetUsers)
             userEndpoint.GET("/:name", users.GetUser)
-            userEndpoint.DELETE("/delete", users.DeleteUser)
+            userEndpoint.POST("/delete", users.DeleteUser)
             
             lootEndpoint := v1.Group("/lootlist")
             lootEndpoint.GET("/:name", lootlists.GetLootLists)
             lootEndpoint.POST("/add/:id", lootlists.AddItem)
-            lootEndpoint.DELETE("/delete/:id", lootlists.RemoveItem)
+            lootEndpoint.POST("/delete/:id", lootlists.RemoveItem)
                        
             charEndpoint := v1.Group("/characters")
             charEndpoint.GET("/", characters.GetCharacters)
