@@ -17,7 +17,8 @@ type Configuration struct {
 
 // LoadConfig ...
 func LoadConfig() Configuration{
-    file, err := ioutil.ReadFile("config.json")
+    // TODO: Fix environment variable
+    file, err := ioutil.ReadFile("/home/wowutils/go/config.json")
     
     if err != nil {
 		log.Fatal("Config File Missing. ", err)
