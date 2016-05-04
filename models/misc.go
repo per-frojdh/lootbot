@@ -65,3 +65,9 @@ type DatabaseModel struct {
     UpdatedAt       time.Time `gorm:"column:updated_at"       json:"-"`
     DeletedAt       *time.Time `gorm:"column:deleted_at"      json:"-"`
 }
+
+type AccessToken struct {
+    ID              uint         `gorm:"primary_key"             json:"-"`
+    Key             string       `gorm:"column:key"              json:"-"`
+	Token           string       `gorm:"column:token"            json:"-"`
+}

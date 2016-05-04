@@ -51,7 +51,7 @@ func main() {
     {
         v1 := api.Group("/v1")
         
-        v1.Use(lib.Authorization())
+        v1.Use(lib.AuthorizeSource(), lib.Authorization())
         {
             itemEndpoint := v1.Group("/items")
             itemEndpoint.GET("/:id", items.GetItem)            

@@ -17,6 +17,32 @@ func AddDBContext(db gorm.DB) gin.HandlerFunc {
     }
 }
 
+func AuthorizeSource() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        Source := c.Request.Header.Get("X-Source")
+        if len(Source) == 0 {
+            log.Println("No verifiable source")
+            c.AbortWithStatus(http.StatusForbidden)
+        }
+        
+        db, ok := c.MustGet("databaseConnection").(gorm.DB)
+        if !ok {
+            c.AbortWithStatus(http.StatusInternalServerError)
+        }
+        
+        var token models.AccessToken
+        
+        if db.Where(&models.AccessToken{
+                Token: Source,
+        }).First(&token).RecordNotFound() {
+            log.Println("Source not found with token", Source)    
+            c.AbortWithStatus(http.StatusForbidden)
+        }
+        
+        c.Next()
+    }
+}
+
 func Authorization() gin.HandlerFunc {
     return func(c *gin.Context) {
         Token := c.Request.Header.Get("X-Auth-Token")
