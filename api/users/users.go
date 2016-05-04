@@ -4,11 +4,8 @@ package users
 
 import (
     "log"
-    "crypto/rand"
-    "encoding/base64"
 	"github.com/gin-gonic/gin"
     "github.com/jinzhu/gorm"
-    bcrypt "golang.org/x/crypto/bcrypt"
     "net/http"
     models "github.com/per-frojdh/lootbot/models"
 )
@@ -56,10 +53,14 @@ func GetUser(c *gin.Context) {
 
 // RegisterUser ...
 func RegisterUser(c *gin.Context) {
-    login := c.PostForm("login")
-    name := c.PostForm("name")
-    email := c.PostForm("email")
-    password := c.PostForm("password")
+    login := c.PostForm("Username")
+    // name := c.PostForm("username")
+    // email := c.PostForm("email")
+    // password := c.PostForm("password")
+    token := c.PostForm("ID")
+    
+    log.Println("Token is: ", token)
+    log.Println("Username is: ", login)
     
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
@@ -67,32 +68,41 @@ func RegisterUser(c *gin.Context) {
         // Do something
     }
     
-    hash := make([]byte, 32)
-    rand.Read(hash)
-    secureString := base64.URLEncoding.EncodeToString(hash)
+    if len(login) == 0 || len(token) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+        return
+    }
+    
+    // Don't need this right now
+    // hash := make([]byte, 32)
+    // rand.Read(hash)
+    // secureString := base64.URLEncoding.EncodeToString(hash)
     
     user := models.User{
         Login: login,
-        Name: name,
-        Email: email,
+        Name: login,
+        // Email: email,
         GuildID: 1,
         SecretQuestion: "Test",
         SecretAnswer: "Test",
-        Token: secureString,
+        Token: token,
     }
     
+    // Don't need this right now
     // This should give them a hashed password    
-    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost) 
-    user.Password = string(hashedPassword)
+    // hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost) 
+    // user.Password = string(hashedPassword)
     
-    db.NewRecord(user)
-    db.Create(&user)
+    if db.Where(&models.User{
+        Token: token,
+    }).First(&user).RecordNotFound() {
+        db.NewRecord(user)
+        db.Create(&user)
+        c.JSON(http.StatusOK, user)
+        return    
+    }
     
-    if db.Error != nil {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["FAILED_CREATING_USER"] })
-    } else {
-        c.JSON(http.StatusOK, user)    
-    }    
+    c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["FAILED_CREATING_USER"] })
 }
 
 // DeleteUser ...
