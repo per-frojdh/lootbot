@@ -82,7 +82,7 @@ func RegisterUser(c *gin.Context) {
         Login: login,
         Name: login,
         // Email: email,
-        GuildID: 1,
+        GuildID: 3,
         SecretQuestion: "Test",
         SecretAnswer: "Test",
         Token: token,
