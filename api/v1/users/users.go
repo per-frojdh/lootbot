@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
     "github.com/jinzhu/gorm"
     "net/http"
+    bcrypt "golang.org/x/crypto/bcrypt"
     models "github.com/per-frojdh/lootbot/models"
 )
 
@@ -54,9 +55,6 @@ func GetUser(c *gin.Context) {
 // RegisterUser ...
 func RegisterUser(c *gin.Context) {
     login := c.PostForm("Username")
-    // name := c.PostForm("username")
-    // email := c.PostForm("email")
-    // password := c.PostForm("password")
     token := c.PostForm("ID")
     
     log.Println("Token is: ", token)
@@ -90,8 +88,7 @@ func RegisterUser(c *gin.Context) {
     
     // Don't need this right now
     // This should give them a hashed password    
-    // hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost) 
-    // user.Password = string(hashedPassword)
+    
     
     if db.Where(&models.User{
         Token: token,
@@ -124,4 +121,39 @@ func DeleteUser(c *gin.Context) {
     
     db.Unscoped().Delete(&user)
     c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
+}
+
+// ResetPassword ...
+func ResetPassword(c *gin.Context) {
+    c.JSON(http.StatusOK, gin.H{"message": "ResetPassword"})
+}
+
+// Register ...
+func Register(c *gin.Context) {
+    passphrase := c.PostForm("password")
+    email := c.PostForm("email")
+    
+    if len(passphrase) == 0 || len(email) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+        return
+    }
+    
+    db, ok := c.MustGet("databaseConnection").(gorm.DB)
+    if !ok {
+        c.AbortWithStatus(http.StatusInternalServerError)
+    }
+    
+    user, ok := c.MustGet("authUser").(models.User)
+    if !ok {
+        c.AbortWithStatus(http.StatusBadRequest)
+    }
+    
+    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(passphrase), bcrypt.MinCost) 
+    user.Password = string(hashedPassword)
+    
+    user.Email = email
+    user.Password = string(hashedPassword[:])
+    
+    db.Save(user)
+    c.JSON(http.StatusOK, gin.H{"message": "Successfully registered user to web interface"})
 }

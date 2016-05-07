@@ -10,17 +10,21 @@ package main
 
 import (
 	"fmt"
+    "os"
 	"github.com/gin-gonic/gin"
     "github.com/jinzhu/gorm"
     _ "github.com/lib/pq"
+    "github.com/gin-gonic/contrib/jwt"
     //
-    items "github.com/per-frojdh/lootbot/api/items"
-    users "github.com/per-frojdh/lootbot/api/users"
-    lootlists "github.com/per-frojdh/lootbot/api/lootlists"
-    characters "github.com/per-frojdh/lootbot/api/characters"
-    misc "github.com/per-frojdh/lootbot/api/public"
+    items "github.com/per-frojdh/lootbot/api/v1/items"
+    users "github.com/per-frojdh/lootbot/api/v1/users"
+    lootlists "github.com/per-frojdh/lootbot/api/v1/lootlists"
+    characters "github.com/per-frojdh/lootbot/api/v1/characters"
+    misc "github.com/per-frojdh/lootbot/api/v1/public"
     config "github.com/per-frojdh/lootbot/config"
     lib "github.com/per-frojdh/lootbot/lib"
+    // v2
+    v2 "github.com/per-frojdh/lootbot/api/v2"
 )
 
 func main() {
@@ -49,28 +53,41 @@ func main() {
     // TODO: Figure out if I can break out these to a separate file (in a nice way)
     api := router.Group("/api")
     {
-        v1 := api.Group("/v1")
+        version1 := api.Group("/v1")
         
-        v1.Use(lib.AuthorizeSource(), lib.Authorization())
+        version1.Use(lib.AuthorizeSource(), lib.Authorization())
         {
-            itemEndpoint := v1.Group("/items")
+            itemEndpoint := version1.Group("/items")
             itemEndpoint.GET("/:id", items.GetItem)            
             itemEndpoint.GET("/", items.SearchItems)                
             
-            userEndpoint := v1.Group("/users")
+            userEndpoint := version1.Group("/users")
             userEndpoint.GET("/", users.GetUsers)
             userEndpoint.GET("/:name", users.GetUser)
             userEndpoint.POST("/delete", users.DeleteUser)
+            userEndpoint.POST("/register", users.Register)
             
-            lootEndpoint := v1.Group("/lootlist")
+            lootEndpoint := version1.Group("/lootlist")
             lootEndpoint.GET("/:name", lootlists.GetLootLists)
             lootEndpoint.POST("/add/:id", lootlists.AddItem)
             lootEndpoint.POST("/delete/:id", lootlists.RemoveItem)
                        
-            charEndpoint := v1.Group("/characters")
+            charEndpoint := version1.Group("/characters")
             charEndpoint.GET("/", characters.GetCharacters)
             charEndpoint.POST("/import", characters.CreateCharacter)
             charEndpoint.POST("/delete", characters.DeleteCharacter)
+        }
+        
+        version2 := api.Group("/v2")
+        
+        version2.Use(jwt.Auth(os.Getenv("SUPER_SECRET_TOKEN")))
+        {
+            authEndpoint := version2.Group("/auth")
+            authEndpoint.GET("/", v2.ResetPassword)
+            
+            userEndpoint := version2.Group("/users")
+            userEndpoint.GET("/", users.GetUsers)
+                       
         }
         
         // These should be all of the public endpoints (in the future)
@@ -79,6 +96,7 @@ func main() {
         {
             public.GET("/health", misc.HealthCheck)
             public.POST("/register", users.RegisterUser)
+            public.POST("/login", v2.Authenticate)    
         }
 
     }

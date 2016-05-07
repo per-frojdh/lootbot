@@ -5,6 +5,8 @@ import (
     "log"
     "io/ioutil"
     "encoding/json"
+    "github.com/joho/godotenv"
+    "os"
     
 )
 
@@ -17,9 +19,20 @@ type Configuration struct {
 
 // LoadConfig ...
 func LoadConfig() Configuration{
-    // TODO: Fix environment variable
-    file, err := ioutil.ReadFile("/home/wowutils/go/config.json")
+    err := godotenv.Load("src/github.com/per-frojdh/lootbot/.env")
+    if err != nil {
+        log.Fatal("Error loading .env file", err)
+    }
     
+    var file []byte
+    environment := os.Getenv("SETUP_ENVIRONMENT")
+    
+    if (environment == "dev") {
+        file, err = ioutil.ReadFile("config.json")
+    } else {
+        file, err = ioutil.ReadFile("/home/wowutils/go/config.json")    
+    }
+
     if err != nil {
 		log.Fatal("Config File Missing. ", err)
 	}
