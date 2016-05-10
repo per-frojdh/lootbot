@@ -56,6 +56,7 @@ var ErrorMessages = map[string]string {
     "BAD_INPUT_PARAMETERS": "Bad input parameters, try again",
     "DATABASE_ERROR": "Can't connect to database, tell someone",
     "CHARACTER_EXIST": "That character already exists",
+    "FAILED_BNET": "Failed to communicate with battle.net",
 }
 
 // Basic model all other models have referenced

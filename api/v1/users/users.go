@@ -16,7 +16,8 @@ func GetUsers(c *gin.Context) {
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        // Do something
+        c.AbortWithStatus(http.StatusInternalServerError)
+        return
     }
     
     var returnedUser[] models.User
@@ -33,10 +34,16 @@ func GetUsers(c *gin.Context) {
 func GetUser(c *gin.Context) {
     login := c.Param("name");
     
+    if len(login) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        return
+    }
+    
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        // Do something
+        c.AbortWithStatus(http.StatusInternalServerError)
+        return
     }
     
     var user models.User
@@ -62,8 +69,8 @@ func RegisterUser(c *gin.Context) {
     
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        log.Fatal("DatabaseConnection failed")
-        // Do something
+        c.AbortWithStatus(http.StatusInternalServerError)
+        return
     }
     
     if len(login) == 0 || len(token) == 0 {

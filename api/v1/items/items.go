@@ -15,8 +15,9 @@ func GetItem(c *gin.Context) {
     id, err := strconv.Atoi(c.Param("id"))
     
     // Convert Parameter to int, for db query
-    if err != nil || id < 1 {
-        c.AbortWithStatus(http.StatusBadRequest)
+    if len(c.Param("id") || err != nil || id < 1 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        return
     }
     
     // Get the DB context
@@ -48,7 +49,8 @@ func SearchItems(c *gin.Context) {
     query := c.Query("search")
     
     if len(query) == 0 {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        return
     }
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
@@ -58,7 +60,7 @@ func SearchItems(c *gin.Context) {
     arr := []string{"%", query, "%"}
     searchQuery := strings.Join(arr, "")
     var items []models.Item
-    if db.Where("name ILIKE ?", searchQuery).Find(&items).RecordNotFound() {
+    if db.Where("name ILIKE ?", searchQuery).Limit(10).Find(&items).RecordNotFound() {
         c.JSON(http.StatusBadRequest, gin.H{"message" : "Could not find any items with that name"})
     }
     

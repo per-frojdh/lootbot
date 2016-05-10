@@ -14,10 +14,15 @@ import (
 func GetLootLists(c *gin.Context) {
     name := c.Param("name");
     
+    if len(name) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        return
+    }
+    
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.AbortWithStatus(http.StatusInternalServerError)
     }
     
     var char models.Character
@@ -64,7 +69,7 @@ func AddItem(c *gin.Context) {
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.AbortWithStatus(http.StatusForbidden)
     }
     
     var char models.Character
@@ -128,7 +133,7 @@ func RemoveItem(c *gin.Context) {
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.AbortWithStatus(http.StatusForbidden)
     }
     
     var char models.Character
@@ -166,5 +171,4 @@ func RemoveItem(c *gin.Context) {
     }
     
     c.String(http.StatusNotModified, "You don't have the item you're trying to delete")
-       
 }

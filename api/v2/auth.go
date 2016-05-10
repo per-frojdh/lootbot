@@ -17,11 +17,6 @@ import (
 
 // Authenticate ...
 func Authenticate(c *gin.Context) {
-    // err := godotenv.Load("src/github.com/per-frojdh/lootbot/.env")
-    // if err != nil {
-    //     log.Fatal("Error loading .env file", err)
-    // }
-    
     basicHeader := c.Request.Header.Get("Authorization")
     if len(basicHeader) == 0 {
         c.AbortWithStatus(http.StatusForbidden)

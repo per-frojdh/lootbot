@@ -5,6 +5,7 @@ import (
     "github.com/jinzhu/gorm"
     "net/http"
     "fmt"
+    "log"
     models "github.com/per-frojdh/lootbot/models"
     config "github.com/per-frojdh/lootbot/config"
     util "github.com/per-frojdh/lootbot/lib"
@@ -41,13 +42,21 @@ func CreateCharacter(c *gin.Context) {
     
     cfg, ok := c.MustGet("config").(config.Configuration)
     if !ok {
-        
+        c.JSON(http.StatusInternalServerError, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
+        return
     }
     
+    log.Println("Attempting import of character:", realm, character)
+    
+    if len(realm) == 0 || len(character) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"]})
+        return
+    }
+
     importedCharacter, errs := util.FetchCharacter(realm, character, cfg.ApiKey)
     
     if errs != nil && importedCharacter == nil {
-        c.JSON(http.StatusBadRequest, errs)
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["FAILED_BNET"]})
         return
     }
     
@@ -74,7 +83,7 @@ func CreateCharacter(c *gin.Context) {
             db.Create(&importedCharacter)
             
             if db.Error != nil {
-                c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
+                c.JSON(http.StatusInternalServerError, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
                 return
             }    
         } else {
@@ -90,7 +99,7 @@ func DeleteCharacter(c *gin.Context) {
     name := c.PostForm("name")
     
     if len(name) == 0 {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
         return
     }
     
@@ -101,7 +110,7 @@ func DeleteCharacter(c *gin.Context) {
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.AbortWithStatus(http.StatusForbidden)
     }
     
     var character models.Character
