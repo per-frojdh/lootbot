@@ -11,11 +11,11 @@ import (
 )
 
 // GetItem ...
-func GetItem(c *gin.Context) {
+func GetItem(c *gin.Context) {    
     id, err := strconv.Atoi(c.Param("id"))
     
     // Convert Parameter to int, for db query
-    if len(c.Param("id") || err != nil || id < 1 {
+    if len(c.Param("id")) == 0 || err != nil || id < 1 {
         c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
         return
     }
