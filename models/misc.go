@@ -43,8 +43,8 @@ var Race = map[int]string{
     10: "Blood Elf",
     11: "Draenei",
     22: "Worgen",
-    24: "Pandaren",
     25: "Pandaren",
+    26: "Pandaren",
 }
 
 // ErrorMessages ...
