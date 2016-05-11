@@ -7,7 +7,6 @@ import (
     "strconv"
     models "github.com/per-frojdh/lootbot/models"
     util "github.com/per-frojdh/lootbot/lib"
-	"fmt"
 )
 
 // GetLootLists ...
@@ -15,14 +14,19 @@ func GetLootLists(c *gin.Context) {
     name := c.Param("name");
     
     if len(name) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     var char models.Character
@@ -30,14 +34,21 @@ func GetLootLists(c *gin.Context) {
     if db.Where(&models.Character{
         Name: name,
     }).First(&char).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
+    
     db.Model(&char).Association("Lootlist").Find(&char.Lootlist)
+    
     if len(char.Lootlist) == 0 {
-        c.JSON(http.StatusNotFound, gin.H{ "message": "No items added to lootlist"})
+        c.Error(util.CreatePanicResponse("NO_LOOTLIST_ITEMS")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "NO_LOOTLIST_ITEMS"))
+        c.Abort()
         return
     }
+    
     someData, _ := util.ParseItems(char.Lootlist)
     char.Lootlist = someData
     c.JSON(http.StatusOK, char)
@@ -45,32 +56,33 @@ func GetLootLists(c *gin.Context) {
 
 // AddItem ...
 func AddItem(c *gin.Context) {
-
-    db, ok := c.MustGet("databaseConnection").(gorm.DB)
-    if !ok {
-        // Do something
-    }
-    
     character := c.PostForm("character")
     context := c.PostForm("context")
     id := c.Param("id")
     
-    if len(character) == 0 || len(id) == 0 || len(context) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+    itemID, err := strconv.Atoi(id)
+    
+    if len(character) == 0 || (len(id) == 0 || itemID < 1) || len(context) == 0 || err != nil {
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
-    itemID, err := strconv.Atoi(id)
-    
-    // Convert Parameter to int, for db query
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+    db, ok := c.MustGet("databaseConnection").(gorm.DB)
+    if !ok {
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
         return
     }
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusForbidden)
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     var char models.Character
@@ -80,7 +92,9 @@ func AddItem(c *gin.Context) {
         ItemID: itemID,
         Context: context,
     }).First(&item).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -88,7 +102,9 @@ func AddItem(c *gin.Context) {
         Name: character,
         UserID: authUser.ID,
     }).First(&char).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -100,40 +116,43 @@ func AddItem(c *gin.Context) {
         }
     }
     
-    if (!found) {
-        lootlist.Append(&item)
-        c.JSON(http.StatusOK, char)     
+    if (found) {
+        c.Error(util.CreatePanicResponse("ITEM_ALREADY_ADDED")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "ITEM_ALREADY_ADDED"))
+        c.Abort()
         return   
     }
-    c.String(http.StatusNotModified, "You can't add an item you already have on your itemlist") 
+    lootlist.Append(&item)
+    c.JSON(http.StatusOK, char)    
 }
 
 // RemoveItem ... 
 func RemoveItem(c *gin.Context) {
-    db, ok := c.MustGet("databaseConnection").(gorm.DB)
-    if !ok {
-        // Do something
-    }
-    
     character := c.PostForm("character")
     id := c.Param("id")
+    itemID, err := strconv.Atoi(id)
     
-    if len(character) == 0 || len(id) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+    if len(character) == 0 || len(id) == 0 || itemID < 1 || err != nil {
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
-    itemID, err := strconv.Atoi(id)
-    
-    // Convert Parameter to int, for db query
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+    db, ok := c.MustGet("databaseConnection").(gorm.DB)
+    if !ok {
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
         return
     }
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusForbidden)
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     var char models.Character
@@ -143,7 +162,9 @@ func RemoveItem(c *gin.Context) {
         ItemID: itemID,
         Context: "raid-mythic",
     }).First(&item).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -151,24 +172,28 @@ func RemoveItem(c *gin.Context) {
         Name: character,
         UserID: authUser.ID,
     }).First(&char).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
     lootlist := db.Model(&char).Association("Lootlist").Find(&char.Lootlist)
+    
     found := false    
     for _, obj := range char.Lootlist {
-        fmt.Println("Comparing: ", obj.ItemID, itemID)
         if (obj.ItemID == itemID) {
             found = true
         }
     }
     
-    if (found) {
-        lootlist.Delete(&item)
-        c.JSON(http.StatusOK, char)
-        return   
+    if (!found) {
+        c.Error(util.CreatePanicResponse("ITEM_NOT_ADDED")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "ITEM_NOT_ADDED"))
+        c.Abort()
+        return
     }
     
-    c.String(http.StatusNotModified, "You don't have the item you're trying to delete")
+    lootlist.Delete(&item)
+    c.JSON(http.StatusOK, char)
 }

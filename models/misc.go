@@ -51,12 +51,16 @@ var Race = map[int]string{
 var ErrorMessages = map[string]string {
     "RESOURCE_NOT_FOUND": "The requested resource was not found",
     "FAILED_CREATING_USER": "We could not register a new user for you",
+    "FAILED_DATABASE_CREATION": "We could not create a new database entity, tell someone",
     "AUTHENTICATION_FAILED": "Authentication failed",
     "FORBIDDEN": "Not authorized",
     "BAD_INPUT_PARAMETERS": "Bad input parameters, try again",
     "DATABASE_ERROR": "Can't connect to database, tell someone",
     "CHARACTER_EXIST": "That character already exists",
     "FAILED_BNET": "Failed to communicate with battle.net",
+    "NO_LOOTLIST_ITEMS": "No items found in lootlist",
+    "ITEM_ALREADY_ADDED": "You can't add an item you already have on your itemlist",
+    "ITEM_NOT_ADDED": "You don't have the item you're trying to delete",
 }
 
 // Basic model all other models have referenced

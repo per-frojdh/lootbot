@@ -7,6 +7,7 @@ import (
 	"github.com/per-frojdh/lootbot/models"
 	"github.com/per-frojdh/lootbot/config"
     "log"
+    "os"
 )
 
 // AddDBContext ...
@@ -74,5 +75,51 @@ func AddConfigContext(cfg config.Configuration) gin.HandlerFunc {
     return func(c *gin.Context) {
         c.Set("config", cfg)
         c.Next()
+    }
+}
+
+func DebugPostForm() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        log.Println("Parsing form values")
+        log.Println(c.Request.Header.Get("Content-Type"))
+        c.Request.ParseForm()
+        values := c.Request.Form
+        log.Println(values)
+        for k, v := range values {
+            log.Println(k, v[0])   
+        }
+    }
+}
+
+func ErrorHandler() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Next()
+        
+        lastError := c.Errors.ByType(gin.ErrorTypeAny).Last()
+        if lastError != nil && lastError.Meta != nil {
+            errorList := []ResponseMessage{}
+            for _, err := range c.Errors.ByType(gin.ErrorTypeAny) {
+                errorList = append(errorList, err.Meta.(ResponseMessage))
+            }
+            
+            apiError := APIError{}
+            c.Request.ParseForm()
+            list := []Parameter{}
+            values := c.Request.Form
+            for k, v := range values {
+                list = append(list, Parameter{ Key: k, Value: v[0]})
+            }
+            
+            statusCode := lastError.Meta.(ResponseMessage).StatusCode
+            if len(os.Getenv("dev")) == 0 && c.Request.Method == "POST" {
+                apiError.Request.ContentType = c.Request.Header.Get("Content-Type")
+                apiError.Request.Params = list    
+            }
+
+            apiError.Errors = errorList
+            c.JSON(statusCode, apiError)    
+        }
+        
+        
     }
 }

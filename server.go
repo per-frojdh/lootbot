@@ -45,7 +45,8 @@ func main() {
     db.DB().SetMaxOpenConns(100)
     db.LogMode(true)
     
-    router := gin.Default()
+    router := gin.New()
+    router.Use(gin.Logger())
     router.Use(gin.Recovery())
     router.Use(lib.AddDBContext(*db))
     router.Use(lib.AddConfigContext(cfg))
@@ -55,7 +56,7 @@ func main() {
     {
         version1 := api.Group("/v1")
         
-        version1.Use(lib.AuthorizeSource(), lib.Authorization())
+        version1.Use(lib.AuthorizeSource(), lib.Authorization(), lib.ErrorHandler())
         {
             itemEndpoint := version1.Group("/items")
             itemEndpoint.GET("/:id", items.GetItem)            

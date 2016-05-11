@@ -12,5 +12,5 @@ type User struct {
     SecretAnswer   string       `gorm:"column:secretanswer"    json:"-"`
     Token          string       `gorm:"column:token"           json:"-"`
     Role           uint         `gorm:"column:role"            json:"-"`
-    Characters     []Character  `gorm:"ForeignKey:userid"`
+    Characters     []Character  `gorm:"ForeignKey:user_id"`
 }

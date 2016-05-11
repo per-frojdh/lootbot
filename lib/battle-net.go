@@ -82,6 +82,7 @@ func ParseFeed(feed *ActivityFeedContainer) *[]ActivityFeed{
 }
 
 func CapitalizeString(s string) string {
+
     word := []rune(s)
     word[0] = unicode.ToUpper(word[0])
     return string(word)

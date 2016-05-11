@@ -9,6 +9,7 @@ import (
     "net/http"
     bcrypt "golang.org/x/crypto/bcrypt"
     models "github.com/per-frojdh/lootbot/models"
+    util "github.com/per-frojdh/lootbot/lib"
 )
 
 // GetUsers ...
@@ -16,18 +17,23 @@ func GetUsers(c *gin.Context) {
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
         return
     }
     
     var returnedUser[] models.User
     db.Find(&returnedUser)
     
-    if db.Error != nil {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
-    } else {
-        c.JSON(http.StatusOK, returnedUser)    
+    if db.Error != nil || len(returnedUser) == 0 {
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
+        return
     }
+    c.JSON(http.StatusOK, returnedUser)    
+    
 }
 
 // GetUser ...
@@ -35,14 +41,18 @@ func GetUser(c *gin.Context) {
     login := c.Param("name");
     
     if len(login) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
         return
     }
     
@@ -51,7 +61,9 @@ func GetUser(c *gin.Context) {
     if db.Where(&models.User{
         Login: login,
     }).First(&user).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -67,35 +79,29 @@ func RegisterUser(c *gin.Context) {
     log.Println("Token is: ", token)
     log.Println("Username is: ", login)
     
+    if len(login) == 0 || len(token) == 0 {
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
+        return
+    }
+    
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
         return
     }
-    
-    if len(login) == 0 || len(token) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
-        return
-    }
-    
-    // Don't need this right now
-    // hash := make([]byte, 32)
-    // rand.Read(hash)
-    // secureString := base64.URLEncoding.EncodeToString(hash)
     
     user := models.User{
         Login: login,
         Name: login,
-        // Email: email,
-        GuildID: 3,
+        GuildID: 3, // 3 happens to be Aeon on live
         SecretQuestion: "Test",
         SecretAnswer: "Test",
         Token: token,
-    }
-    
-    // Don't need this right now
-    // This should give them a hashed password    
-    
+    } 
     
     if db.Where(&models.User{
         Token: token,
@@ -106,24 +112,35 @@ func RegisterUser(c *gin.Context) {
         return    
     }
     
-    c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["FAILED_CREATING_USER"] })
+    c.Error(util.CreatePanicResponse("FAILED_CREATING_USER")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "FAILED_CREATING_USER"))
+    c.Abort()
 }
 
 // DeleteUser ...
 func DeleteUser(c *gin.Context) {
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     var user models.User
     if db.First(&user, authUser.ID).RecordNotFound() {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
+        return
     }
     
     db.Unscoped().Delete(&user)
@@ -141,18 +158,26 @@ func Register(c *gin.Context) {
     email := c.PostForm("email")
     
     if len(passphrase) == 0 || len(email) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     user, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(passphrase), bcrypt.MinCost) 
@@ -162,5 +187,11 @@ func Register(c *gin.Context) {
     user.Password = string(hashedPassword[:])
     
     db.Save(user)
+    if db.Error != nil {
+        c.Error(util.CreatePanicResponse("FAILED_CREATING_USER")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "FAILED_CREATING_USER"))
+        c.Abort()
+        return
+    }
     c.JSON(http.StatusOK, gin.H{"message": "Successfully registered user to web interface"})
 }

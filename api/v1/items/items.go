@@ -16,24 +16,33 @@ func GetItem(c *gin.Context) {
     
     // Convert Parameter to int, for db query
     if len(c.Param("id")) == 0 || err != nil || id < 1 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     // Hold the structified item here.
     var returnedItems []models.Item
     
     // Get the db row    
-    if db.Where(&models.Item{
+    db.Where(&models.Item{
         ItemID: id,
-    }).Find(&returnedItems).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+    }).Find(&returnedItems)
+    
+    if len(returnedItems) == 0 {
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -49,20 +58,33 @@ func SearchItems(c *gin.Context) {
     query := c.Query("search")
     
     if len(query) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
+    
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusInternalServerError)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     arr := []string{"%", query, "%"}
     searchQuery := strings.Join(arr, "")
     var items []models.Item
-    if db.Where("name ILIKE ?", searchQuery).Limit(10).Find(&items).RecordNotFound() {
-        c.JSON(http.StatusBadRequest, gin.H{"message" : "Could not find any items with that name"})
-    }
+    
+    if db.Where("name ILIKE ?", searchQuery).
+        Limit(10).
+        Find(&items).
+        RecordNotFound() {
+            c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+                SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+            c.Abort()
+            return
+        }
     
     returnData, _ := util.ParseItems(items)
     

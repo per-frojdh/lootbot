@@ -16,20 +16,27 @@ func GetCharacters(c *gin.Context) {
     // Get the DB context
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        // Do something
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
-        // Do something
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     var characters []models.Character
     if db.Where(&models.Character{
         UserID: authUser.ID,
     }).Find(&characters).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
         return
     }
     
@@ -40,39 +47,47 @@ func CreateCharacter(c *gin.Context) {
     realm := c.PostForm("realm")
     character := c.PostForm("character")
     
+    if len(realm) == 0 || len(character) == 0 {
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
+        return
+    }
+    
     cfg, ok := c.MustGet("config").(config.Configuration)
     if !ok {
-        c.JSON(http.StatusInternalServerError, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
-        return
-    }
-    
-    log.Println("Attempting import of character:", realm, character)
-    
-    if len(realm) == 0 || len(character) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"]})
-        return
+        // Can't really happen
     }
 
+    log.Println("Attempting import of character:", realm, character)
     importedCharacter, errs := util.FetchCharacter(realm, character, cfg.ApiKey)
     
     if errs != nil && importedCharacter == nil {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["FAILED_BNET"]})
+        c.Error(util.CreatePanicResponse("FAILED_BNET")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "FAILED_BNET"))
+        c.Abort()
         return
     }
     
     if importedCharacter != nil {
-        authUser, ok := c.MustGet("authUser").(models.User)
-        if !ok {
-            c.AbortWithStatus(http.StatusBadRequest)
-            // Do something
-        }
-        importedCharacter.UserID = authUser.ID
         
         db, ok := c.MustGet("databaseConnection").(gorm.DB)
         if !ok {
-            c.JSON(http.StatusInternalServerError, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
+            c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+                SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+            c.Abort()
             return
         }
+        
+        authUser, ok := c.MustGet("authUser").(models.User)
+        if !ok {
+            c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+                SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+            c.Abort()
+            return
+        }
+        
+        importedCharacter.UserID = authUser.ID        
         
         var character models.Character
         if db.Where(&models.Character{
@@ -83,14 +98,17 @@ func CreateCharacter(c *gin.Context) {
             db.Create(&importedCharacter)
             
             if db.Error != nil {
-                c.JSON(http.StatusInternalServerError, gin.H{ "message" : models.ErrorMessages["DATABASE_ERROR"]})
+                c.Error(util.CreatePanicResponse("FAILED_DATABASE_CREATION")).
+                    SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "FAILED_DATABASE_CREATION"))
+                c.Abort()
                 return
             }    
         } else {
-            c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["CHARACTER_EXIST"]})
+            c.Error(util.CreatePanicResponse("CHARACTER_EXIST")).
+                    SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "CHARACTER_EXIST"))
+            c.Abort()
             return
         }
-
         c.JSON(http.StatusOK, importedCharacter)
     }
 }
@@ -100,21 +118,26 @@ func DeleteCharacter(c *gin.Context) {
     realm := c.PostForm("realm")
 
     if len(name) == 0 || len(realm) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
         return
     }
     
-    
-    name = util.CapitalizeString(name)    
-    
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
-        c.AbortWithStatus(http.StatusBadRequest)
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
     }
     
     authUser, ok := c.MustGet("authUser").(models.User)
     if !ok {
-        c.AbortWithStatus(http.StatusForbidden)
+        c.Error(util.CreatePanicResponse("AUTHENTICATION_FAILED")).
+            SetMeta(util.CreateErrorResponse(http.StatusForbidden, "AUTHENTICATION_FAILED"))
+        c.Abort()
+        return
     }
     
     var character models.Character
@@ -124,12 +147,12 @@ func DeleteCharacter(c *gin.Context) {
         Realm: realm,
         UserID: authUser.ID,
     }).First(&character).RecordNotFound() {
-        c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
-        return
-    }
-    
-    db.Delete(&character)
-    msg := fmt.Sprintf("Character %[1]s successfully deleted", name)
-    c.JSON(http.StatusOK, gin.H{ "message" : msg })
-    
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
+    } else {
+        db.Delete(&character)
+        msg := fmt.Sprintf("Character %[1]s successfully deleted", name)
+        c.JSON(http.StatusOK, gin.H{ "message" : msg })   
+    }   
 }
