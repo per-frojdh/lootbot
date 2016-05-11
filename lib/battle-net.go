@@ -6,6 +6,7 @@ import (
     "encoding/json"
     "fmt"
     "errors"
+    "unicode"
 )
 
 type ActivityFeedContainer struct {
@@ -78,4 +79,10 @@ func ParseFeed(feed *ActivityFeedContainer) *[]ActivityFeed{
         }
     }
     return &returnData
+}
+
+func CapitalizeString(s string) string {
+    word := []rune(s)
+    word[0] = unicode.ToUpper(word[0])
+    return string(word)
 }

@@ -52,9 +52,10 @@ func AddItem(c *gin.Context) {
     }
     
     character := c.PostForm("character")
+    context := c.PostForm("context")
     id := c.Param("id")
     
-    if len(character) == 0 || len(id) == 0 {
+    if len(character) == 0 || len(id) == 0 || len(context) == 0 {
         c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETERS"]})
         return
     }
@@ -77,7 +78,7 @@ func AddItem(c *gin.Context) {
 
     if db.Where(&models.Item{
         ItemID: itemID,
-        Context: "raid-mythic",
+        Context: context,
     }).First(&item).RecordNotFound() {
         c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
         return
@@ -94,7 +95,6 @@ func AddItem(c *gin.Context) {
     lootlist := db.Model(&char).Association("Lootlist").Find(&char.Lootlist)
     found := false    
     for _, obj := range char.Lootlist {
-        fmt.Println("Comparing: ", obj.ItemID, itemID)
         if (obj.ItemID == itemID) {
             found = true
         }

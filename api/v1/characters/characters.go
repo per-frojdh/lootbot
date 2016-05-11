@@ -97,11 +97,15 @@ func CreateCharacter(c *gin.Context) {
 
 func DeleteCharacter(c *gin.Context) {
     name := c.PostForm("name")
-    
-    if len(name) == 0 {
+    realm := c.PostForm("realm")
+
+    if len(name) == 0 || len(realm) == 0 {
         c.JSON(http.StatusBadRequest, gin.H{ "message" : models.ErrorMessages["BAD_INPUT_PARAMETER"] })
         return
     }
+    
+    
+    name = util.CapitalizeString(name)    
     
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
@@ -117,6 +121,7 @@ func DeleteCharacter(c *gin.Context) {
 
     if db.Where(&models.Character{
         Name: name,
+        Realm: realm,
         UserID: authUser.ID,
     }).First(&character).RecordNotFound() {
         c.JSON(http.StatusNotFound, gin.H{ "message" : models.ErrorMessages["RESOURCE_NOT_FOUND"] })
