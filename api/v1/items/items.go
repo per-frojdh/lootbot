@@ -13,9 +13,17 @@ import (
 // GetItem ...
 func GetItem(c *gin.Context) {    
     id, err := strconv.Atoi(c.Param("id"))
+    context := c.Param("context")
     
     // Convert Parameter to int, for db query
-    if len(c.Param("id")) == 0 || err != nil || id < 1 {
+    if len(c.Param("id")) == 0 || err != nil || id < 1 || len(context) == 0{
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
+        return
+    }   
+     
+    if !util.CheckValidContext(context) {
         c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
             SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
         c.Abort()
@@ -37,6 +45,7 @@ func GetItem(c *gin.Context) {
     // Get the db row    
     db.Where(&models.Item{
         ItemID: id,
+        Context: context,
     }).Find(&returnedItems)
     
     if len(returnedItems) == 0 {

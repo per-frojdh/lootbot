@@ -69,6 +69,13 @@ func AddItem(c *gin.Context) {
         return
     }
     
+    if !util.CheckValidContext(context) {
+        c.Error(util.CreatePanicResponse("BAD_INPUT_PARAMETERS")).
+            SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "BAD_INPUT_PARAMETERS"))
+        c.Abort()
+        return
+    }
+    
     db, ok := c.MustGet("databaseConnection").(gorm.DB)
     if !ok {
         c.Error(util.CreatePanicResponse("DATABASE_ERROR")).

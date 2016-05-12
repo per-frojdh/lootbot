@@ -55,11 +55,10 @@ func main() {
     api := router.Group("/api")
     {
         version1 := api.Group("/v1")
-        
         version1.Use(lib.AuthorizeSource(), lib.Authorization(), lib.ErrorHandler())
         {
             itemEndpoint := version1.Group("/items")
-            itemEndpoint.GET("/:id", items.GetItem)            
+            itemEndpoint.GET("/:id/:context", items.GetItem)            
             itemEndpoint.GET("/", items.SearchItems)                
             
             userEndpoint := version1.Group("/users")
@@ -80,7 +79,6 @@ func main() {
         }
         
         version2 := api.Group("/v2")
-        
         version2.Use(jwt.Auth(os.Getenv("SUPER_SECRET_TOKEN")))
         {
             authEndpoint := version2.Group("/auth")
@@ -91,9 +89,8 @@ func main() {
                        
         }
         
-        // These should be all of the public endpoints (in the future)
-        // TODO: Add authenticate here
         public := api.Group("/public") 
+        public.Use(lib.ErrorHandler())
         {
             public.GET("/health", misc.HealthCheck)
             public.POST("/register", users.RegisterUser)

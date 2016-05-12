@@ -106,15 +106,16 @@ func RegisterUser(c *gin.Context) {
     if db.Where(&models.User{
         Token: token,
     }).First(&user).RecordNotFound() {
+        log.Println("Record not found")
         db.NewRecord(user)
         db.Create(&user)
         c.JSON(http.StatusOK, user)
-        return    
-    }
-    
-    c.Error(util.CreatePanicResponse("FAILED_CREATING_USER")).
+        return 
+    } else {
+        c.Error(util.CreatePanicResponse("FAILED_CREATING_USER")).
             SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "FAILED_CREATING_USER"))
-    c.Abort()
+        c.Abort()   
+    }
 }
 
 // DeleteUser ...

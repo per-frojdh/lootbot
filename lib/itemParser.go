@@ -5,6 +5,15 @@ import (
     "encoding/json"
 )
 
+func CheckValidContext(s string) bool {
+    for _, context := range models.RaidContexts {
+        if s == context {
+            return true
+        }
+    }
+    return false
+}
+
 func ParseItems (items []models.Item) ([]models.Item, []error) {
     returnData := []models.Item{}
     for _, item := range items {

@@ -40,6 +40,13 @@ func GetCharacters(c *gin.Context) {
         return
     }
     
+    if db.Error != nil {
+        c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
+            SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
+        c.Abort()
+        return
+    }
+    
     c.JSON(http.StatusOK, characters)
 }
 

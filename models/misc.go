@@ -4,6 +4,13 @@ import (
     "time"
 )
 
+var RaidContexts = []string{
+    "raid-finder",
+    "raid-normal",
+    "raid-heroic",
+    "raid-mythic",
+}
+
 // Easy way to decode classes from API
 var Class = map[int]string{
 	0:  "None",
