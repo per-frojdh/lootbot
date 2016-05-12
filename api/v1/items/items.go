@@ -40,23 +40,28 @@ func GetItem(c *gin.Context) {
     }
     
     // Hold the structified item here.
-    var returnedItems []models.Item
+    var returnedItem models.Item
     
     // Get the db row    
-    db.Where(&models.Item{
+    if db.Where(&models.Item{
         ItemID: id,
         Context: context,
-    }).Find(&returnedItems)
-    
-    if len(returnedItems) == 0 {
+    }).First(&returnedItem).RecordNotFound() {
         c.Error(util.CreatePanicResponse("RESOURCE_NOT_FOUND")).
             SetMeta(util.CreateErrorResponse(http.StatusNotFound, "RESOURCE_NOT_FOUND"))
         c.Abort()
         return
     }
-    
+   
     // Loop through the items from DB
-    returnData, _ := util.ParseItems(returnedItems)
+    returnData, err := util.ParseItem(returnedItem)
+    
+    if err != nil {
+        c.Error(util.CreatePanicResponse("DATABASE_ERROR")).
+            SetMeta(util.CreateErrorResponse(http.StatusInternalServerError, "DATABASE_ERROR"))
+        c.Abort()
+        return
+    }
     
     // Respond with the struct as json
     c.JSON(http.StatusOK, returnData)
