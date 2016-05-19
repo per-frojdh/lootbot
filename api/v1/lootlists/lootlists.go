@@ -123,13 +123,18 @@ func AddItem(c *gin.Context) {
         }
     }
     
+    char.Lootlist, _ = util.ParseItems(char.Lootlist)    
+        
     if (found) {
         c.Error(util.CreatePanicResponse("ITEM_ALREADY_ADDED")).
             SetMeta(util.CreateErrorResponse(http.StatusBadRequest, "ITEM_ALREADY_ADDED"))
         c.Abort()
         return   
     }
+    
+    item, _ = util.ParseItem(item)
     lootlist.Append(&item)
+    
     c.JSON(http.StatusOK, char)    
 }
 
